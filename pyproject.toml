@@ -1,0 +1,17 @@
+[project]
+name = "m3sb"
+version = "0.1.0"
+description = "A generalization of SLERP-based model merging for two or more models."
+readme = "README.md"
+authors = [
+    { name = "Mehdi Amlal", email = "amlal.2199248@studenti.uniroma1.it" }
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+m3sb = "m3sb:main"
+
+[build-system]
+requires = ["uv_build>=0.8.8,<0.9.0"]
+build-backend = "uv_build"
