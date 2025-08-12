@@ -2,6 +2,7 @@ import torch
 from typing import Any
 import copy
 from transformers import AutoModel
+from geometry import slerp
 
 def get_model_parameters(model: torch.nn.Module) -> str:
     """Generates a summary string of a model's total and trainable parameters.
@@ -110,7 +111,7 @@ def similar_architecture(model1: torch.nn.Module, model2: torch.nn.Module) -> bo
 
     return True
 
-def merge_task_vectors(interpolation_factor: float, 
+def slerp_merge_task_vectors(interpolation_factor: float, 
                        task_vector1: dict[str, torch.Tensor], 
                        task_vector2: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """Merges two task vectors by interpolating their values.

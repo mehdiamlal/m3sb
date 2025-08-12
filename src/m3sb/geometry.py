@@ -81,3 +81,32 @@ def slerp(t: float, v0: torch.Tensor, v1: torch.Tensor, DOT_THRESHOLD=0.9995) ->
     #combining and reshaping
     interp_vector = interp_unit_vector * interp_norm
     return interp_vector.reshape(original_shape)
+
+def project_on_tangent_space(v: torch.Vector, t: torch.Vector, 
+                             DOT_THRESHOLD=0.9995) -> torch.Vector:
+    """Projects a vector v onto a tangent space in t.
+    Assumption: the vectors are normalized and flattened into a 1D tensor.
+
+    Args:
+        v (torch.Vector): The vector to map.
+        t (torch.Vector): The tangent space vector.
+
+    Returns:
+        torch.Vector: The mapped vector in the tangent space.
+    """
+    dot = torch.dot(v, t).clamp(-1.0, 1.0)
+    theta = torch.acos(dot)
+    #if the vectors are very close, return a zero vector
+    if dot > DOT_THRESHOLD:
+        return torch.zeros_like(t)
+    #if the vectors are anti-parallel, we need to find a vector orthogonal to t
+    elif dot < -DOT_THRESHOLD:
+        #just pick a random direction...
+        helper = torch.randn_like(t)
+        #Gram-schmidt process to find a vector orthogonal to t
+        tangent_v = normalize(helper - torch.dot(helper, t) * t)
+        return tangent_v * theta
+    
+    #general case
+    tangent_v = normalize(v - dot * t)
+    return tangent_v * theta
