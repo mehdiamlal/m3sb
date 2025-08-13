@@ -136,6 +136,25 @@ def project_on_hypersphere(v: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
 
 def barycenter(parameters: list[torch.Tensor], weights: list[float], 
                    iterations: int, threshold: float) -> torch.Tensor:
+    
+    """Computes the weighted barycenter of a list of parameter tensors on a 
+    hypersphere.
+    
+    Args:
+        parameters (list[torch.Tensor]): List of tensors representing parameter 
+            vectors to average.
+        weights (list[float]): List of weights corresponding to each parameter 
+            tensor.
+        iterations (int): Maximum number of iterations for the barycenter 
+            computation.
+        threshold (float): Convergence threshold for the change in barycenter 
+            (measured as the angle between successive estimates).
+    
+    Returns:
+        torch.Tensor: The barycenter tensor, reshaped to match the original parameter shape.
+    """
+    
+
     original_shape = parameters[0].shape
     norms = [torch.linalg.norm(p.flatten()) for p in parameters]
     u_vectors = [normalize(p.flatten()) for p in parameters]
@@ -154,7 +173,7 @@ def barycenter(parameters: list[torch.Tensor], weights: list[float],
         barycenter = new_barycenter
 
         if distance < threshold:
-            print(f"Converged after {i+1} iterations.")
+            #converged
             break
 
     #linearly interpolate the norms of the parameter vectors to resclale the

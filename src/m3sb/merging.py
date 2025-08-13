@@ -37,6 +37,30 @@ def slerp_merge(interpolation_factor: float,
 def barycentric_merge(state_dicts: list[dict[str, torch.Tensor]], 
                       weights: list[float], iterations: int = 20, 
                       threshold: float = 1e-5) -> dict[str, torch.Tensor]:
+    
+    """Merges multiple model state dictionaries using a barycentric approach.
+    
+    Args:
+        state_dicts (list[dict[str, torch.Tensor]]): 
+            A list of state dictionaries from different models to be merged.
+        weights (list[float]): 
+            A list of weights corresponding to each state dictionary, used for 
+            barycentric averaging.
+        iterations (int, optional): 
+            Number of iterations for the barycenter computation. Default is 20.
+        threshold (float, optional): 
+            Convergence threshold for the barycenter computation. Default is 1e-5.
+    
+    Returns:
+        dict[str, torch.Tensor]: 
+            A merged state dictionary where tensor parameters are barycentrically 
+            averaged.
+    
+    Notes:
+        - Non-tensor parameters are skipped and not merged.
+        - Assumes all state dictionaries have matching keys and compatible tensor 
+        shapes.
+    """
 
     merged_state_dict = copy.deepcopy(state_dicts[0])
     
