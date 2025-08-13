@@ -2,7 +2,6 @@ import torch
 from typing import Any
 import copy
 from transformers import AutoModel
-from geometry import slerp
 
 def get_model_parameters(model: torch.nn.Module) -> str:
     """Generates a summary string of a model's total and trainable parameters.
@@ -110,33 +109,3 @@ def similar_architecture(model1: torch.nn.Module, model2: torch.nn.Module) -> bo
             return False
 
     return True
-
-def slerp_merge_task_vectors(interpolation_factor: float, 
-                       task_vector1: dict[str, torch.Tensor], 
-                       task_vector2: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-    """Merges two task vectors by interpolating their values.
-
-    Args:
-        interpolation_factor (float): The factor by which to interpolate
-            between the two task vectors. Should be between 0 and 1.
-        task_vector1 (dict[str, torch.Tensor]): The first task vector.
-        task_vector2 (dict[str, torch.Tensor]): The second task vector.
-
-    Returns:
-        dict[str, torch.Tensor]: A new task vector that is a linear
-            interpolation of the two input task vectors.
-
-    Raises:
-        AssertionError: If the input dictionaries do not have the same
-            number of keys or if the interpolation factor is not in the range [0, 1].
-    """
-    assert 0 <= interpolation_factor <= 1
-    assert len(task_vector1) == len(task_vector2)
-
-    task_vector3 = copy.deepcopy(task_vector1)
-    key_map = map_key_names(task_vector1, task_vector2)
-
-    for k, v in task_vector1.items():
-        task_vector3[k] = slerp(interpolation_factor, v, task_vector2[key_map[k]])
-
-    return task_vector3

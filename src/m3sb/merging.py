@@ -1,10 +1,10 @@
 import copy
-from geometry import slerp
+from geometry import slerp, barycenter
 from utils import map_key_names
 import torch
 from transformers import AutoModelForImageClassification
 
-def merge_task_vectors(interpolation_factor: float, 
+def slerp_merge(interpolation_factor: float, 
                        task_vector1: dict[str, torch.Tensor], 
                        task_vector2: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """Merges two task vectors by interpolating their values.
@@ -33,6 +33,24 @@ def merge_task_vectors(interpolation_factor: float,
         task_vector3[k] = slerp(interpolation_factor, v, task_vector2[key_map[k]])
 
     return task_vector3
+
+def barycentric_merge(state_dicts: list[dict[str, torch.Tensor]], 
+                      weights: list[float], iterations: int = 20, 
+                      threshold: float = 1e-5) -> dict[str, torch.Tensor]:
+
+    merged_state_dict = copy.deepcopy(state_dicts[0])
+    
+    for key in merged_state_dict.keys():
+        #skip non-tensor parameters 
+        if not isinstance(merged_state_dict[key], torch.Tensor):
+            continue
+
+        tensors_to_merge = [sd[key] for sd in state_dicts]
+        merged_tensor = barycenter(tensors_to_merge, weights, iterations,
+                                       threshold)
+        merged_state_dict[key] = merged_tensor
+        
+    return merged_state_dict
 
 def build_merged_image_classifier(base_model_checkpoint: str, 
                             finetuned_model_checkpoint: str, 

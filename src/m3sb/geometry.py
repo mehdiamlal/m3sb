@@ -1,4 +1,5 @@
 import torch
+import copy
 
 def normalize(vector: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
     """Normalizes a tensor to unit length.
@@ -82,17 +83,17 @@ def slerp(t: float, v0: torch.Tensor, v1: torch.Tensor, DOT_THRESHOLD=0.9995) ->
     interp_vector = interp_unit_vector * interp_norm
     return interp_vector.reshape(original_shape)
 
-def project_on_tangent_space(v: torch.Vector, t: torch.Vector, 
-                             DOT_THRESHOLD=0.9995) -> torch.Vector:
+def project_on_tangent_space(v: torch.Tensor, t: torch.Tensor, 
+                             DOT_THRESHOLD=0.9995) -> torch.Tensor:
     """Projects a vector v onto a tangent space in t.
     Assumption: the vectors are normalized and flattened into a 1D tensor.
 
     Args:
-        v (torch.Vector): The vector to map.
-        t (torch.Vector): The tangent space vector.
+        v (torch.Tensor): The vector to map.
+        t (torch.Tensor): The tangent space vector.
 
     Returns:
-        torch.Vector: The mapped vector in the tangent space.
+        torch.Tensor: The mapped vector in the tangent space.
     """
     dot = torch.dot(v, t).clamp(-1.0, 1.0)
     theta = torch.acos(dot)
@@ -110,3 +111,56 @@ def project_on_tangent_space(v: torch.Vector, t: torch.Vector,
     #general case
     tangent_v = normalize(v - dot * t)
     return tangent_v * theta
+
+def project_on_hypersphere(v: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    """Projects a vector v onto a hypersphere from a tangent space in t.
+    Assumption: the vector t is normalized and both v and t are flattened into 
+    a 1D tensor.
+
+    Args:
+        v (torch.Tensor): The vector to project.
+        t (torch.Tensor): The tangent space vector.
+
+    Returns:
+        torch.Tensor: The projected vector on the hypersphere.
+    """
+    
+    norm_v = torch.linalg.norm(v)
+    u = normalize(v)
+    sin_theta = torch.sin(norm_v)
+    cos_theta = torch.cos(norm_v)
+
+    sphere_v = cos_theta * t + sin_theta * u
+
+    return sphere_v
+
+def barycenter(parameters: list[torch.Tensor], weights: list[float], 
+                   iterations: int, threshold: float) -> torch.Tensor:
+    original_shape = parameters[0].shape
+    norms = [torch.linalg.norm(p.flatten()) for p in parameters]
+    u_vectors = [normalize(p.flatten()) for p in parameters]
+    barycenter = copy.deepcopy(u_vectors[0])
+
+    for i in range(iterations):
+        tangent_vectors = [project_on_tangent_space(u, barycenter) for u in u_vectors]
+        avg_tangent = torch.stack([w * t for w, t in zip(weights, tangent_vectors)]).sum(dim=0)
+        
+        new_barycenter = project_on_hypersphere(avg_tangent, barycenter)
+
+        #the distance between the new barycenter and the old one is the angle
+        #between the two vectors
+        distance = torch.acos(torch.dot(barycenter, new_barycenter).clamp(-1.0, 1.0))
+
+        barycenter = new_barycenter
+
+        if distance < threshold:
+            print(f"Converged after {i+1} iterations.")
+            break
+
+    #linearly interpolate the norms of the parameter vectors to resclale the
+    #found barycenter
+    interp_norm = sum(w * n for w, n in zip(weights, norms))
+
+    final_vector = barycenter * interp_norm
+
+    return final_vector.reshape(original_shape)
