@@ -1,5 +1,5 @@
 import copy
-from geometry import slerp, barycenter
+from geometry import slerp, barycenter, weighted_average
 from utils import map_key_names
 import torch
 from transformers import AutoModelForImageClassification
@@ -120,3 +120,41 @@ def build_merged_image_classifier(base_model_checkpoint: str,
     final_model.load_state_dict(final_model_state_dict)
 
     return final_model
+
+#================================ BASELINES ================================
+
+def linear_merge(state_dicts: list[dict[str, torch.Tensor]], 
+                 weights: list[float]) -> dict[str, torch.Tensor]:
+    """Merges multiple PyTorch state dictionaries using a weighted linear combination.
+    
+    Args:
+        state_dicts (list[dict[str, torch.Tensor]]): 
+            A list of state dictionaries to merge. Each dictionary maps parameter 
+            names to tensors.
+        weights (list[float]): 
+            A list of weights corresponding to each state dictionary. 
+            The weights are used for the linear combination.
+    
+    Returns:
+        dict[str, torch.Tensor]: 
+            A new state dictionary containing the merged parameters.
+    
+    Raises:
+        ValueError: If the number of weights does not match the number of state 
+            dictionaries.
+        KeyError: If a key is missing in any of the state dictionaries.
+    """
+
+    merged_state_dict = copy.deepcopy(state_dicts[0])
+
+    for key in merged_state_dict.keys():
+        #skip non-tensor params
+        if not isinstance(merged_state_dict[key], torch.Tensor):
+            continue
+
+        tensors_to_merge = [sd[key] for sd in state_dicts]
+        merged_tensor = weighted_average(tensors_to_merge, weights)
+
+        merged_state_dict[key] = merged_tensor
+
+    return merged_state_dict

@@ -34,6 +34,26 @@ def lerp(t: float, v0: torch.Tensor, v1: torch.Tensor) -> torch.Tensor:
 
     return (1 - t) * v0 + t * v1
 
+def weighted_average(parameters: list[torch.Tensor], weights: list[float]) -> torch.Tensor:
+    """Computes the weighted average of a list of tensors.
+    
+    Args:
+        parameters (list[torch.Tensor]): List of tensors to be averaged.
+        weights (list[float]): List of weights corresponding to each tensor.
+    
+    Returns:
+        torch.Tensor: The weighted average tensor, with the same shape as the 
+            input tensors.
+    
+    Raises:
+        ValueError: If `parameters` or `weights` are empty, or if their lengths 
+            do not match.
+    """
+
+    original_shape = parameters[0].shape
+    flat_params = [(p.flatten() * w ) for p, w in zip(parameters, weights)]
+    return sum(flat_params).reshape(original_shape)
+
 def slerp(t: float, v0: torch.Tensor, v1: torch.Tensor, DOT_THRESHOLD=0.9995) -> torch.Tensor:
     """Spherical linear interpolation between two vectors.
 
