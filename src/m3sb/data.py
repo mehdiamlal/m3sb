@@ -41,8 +41,6 @@ def get_data_loader(dataset_name: str, split: str, image_col: str, label_col: st
             and labels,robust to corrupted or missing data.
     """
 
-
-
     dataset = load_dataset(dataset_name, split=split, trust_remote_code=True)
     
 

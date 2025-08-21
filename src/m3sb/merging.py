@@ -1,88 +1,85 @@
 import copy
-from geometry import slerp, barycenter, weighted_average
-from utils import map_key_names
+from m3sb.geometry import slerp, barycenter, weighted_average
+from m3sb.utils import map_key_names
 import torch
 from transformers import AutoModelForImageClassification
 
 def slerp_merge(interpolation_factor: float, 
-                       task_vector1: dict[str, torch.Tensor], 
-                       task_vector2: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-    """Merges two task vectors by interpolating their values.
+                       params1: dict[str, torch.Tensor], 
+                       params2: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+    """Merges two models applying SLERP.
 
     Args:
         interpolation_factor (float): The factor by which to interpolate
-            between the two task vectors. Should be between 0 and 1.
-        task_vector1 (dict[str, torch.Tensor]): The first task vector.
-        task_vector2 (dict[str, torch.Tensor]): The second task vector.
+            between the two model's parameters. Should be between 0 and 1.
+        params1 (dict[str, torch.Tensor]): The first model's parameters.
+        params2 (dict[str, torch.Tensor]): The second model's parameters.
 
     Returns:
-        dict[str, torch.Tensor]: A new task vector that is a linear
-            interpolation of the two input task vectors.
+        dict[str, torch.Tensor]: The newly merged state dictionary.
 
     Raises:
         AssertionError: If the input dictionaries do not have the same
             number of keys or if the interpolation factor is not in the range [0, 1].
     """
     assert 0 <= interpolation_factor <= 1
-    assert len(task_vector1) == len(task_vector2)
+    assert len(params1) == len(params2)
 
-    task_vector3 = copy.deepcopy(task_vector1)
-    key_map = map_key_names(task_vector1, task_vector2)
+    merged_params = copy.deepcopy(params1)
+    key_map = map_key_names(params1, params2)
 
-    for k, v in task_vector1.items():
-        task_vector3[k] = slerp(interpolation_factor, v, task_vector2[key_map[k]])
+    for k, v in params1.items():
+        merged_params[k] = slerp(interpolation_factor, v, params2[key_map[k]])
 
-    return task_vector3
+    return merged_params
 
-def pairwise_slerp_merge(task_vectors: list[dict[str, torch.Tensor]],
+def pairwise_slerp_merge(parameters: list[dict[str, torch.Tensor]],
                          weights: list[float]) -> dict[str, torch.Tensor]:
-    """Merges a list of task vectors using pairwise SLERP with specified weights.
+    """Merges a list of models' parameters using pairwise SLERP with specified weights.
     
     Args:
-        task_vectors (list[dict[str, torch.Tensor]]): 
-            A list of dictionaries, each mapping parameter names to PyTorch 
-            tensors representing task vectors.
+        parameters (list[dict[str, torch.Tensor]]): 
+            A list of state dictionaries.
         weights (list[float]): 
-            A list of weights corresponding to each task vector, used to 
+            A list of weights corresponding to each model's parameters, used to 
             determine interpolation factors.
     
     Returns:
         dict[str, torch.Tensor]: 
-            A dictionary representing the merged task vector, with parameter names as keys and PyTorch tensors as values.
+            A dictionary representing the merged state dictionary.
     
     Raises:
-        ValueError: If the lengths of `task_vectors` and `weights` do not match.
+        ValueError: If the lengths of `parameters` and `weights` do not match.
     """
 
-    merged_task_vector = copy.deepcopy(task_vectors[0])
+    merged_params = copy.deepcopy(parameters[0])
     cumulative_weight = weights[0]
 
-    for i in range(1, len(task_vectors)):
-        new_task_vector = task_vectors[i]
+    for i in range(1, len(parameters)):
+        new_params = parameters[i]
         new_model_weight = weights[i]
 
         #correct interpolation factor
         interp_factor = new_model_weight / (cumulative_weight + new_model_weight)
 
-        merged_task_vector = slerp_merge(interp_factor, merged_task_vector, 
-                                         new_task_vector)
+        merged_params = slerp_merge(interp_factor, merged_params, 
+                                         new_params)
         
         cumulative_weight += new_model_weight
 
-    return merged_task_vector
+    return merged_params
 
 
 
-def barycentric_merge(task_vectors: list[dict[str, torch.Tensor]], 
+def barycentric_merge(parameters: list[dict[str, torch.Tensor]], 
                       weights: list[float], iterations: int = 20, 
                       threshold: float = 1e-5) -> dict[str, torch.Tensor]:
     
-    """Merges multiple model task_vectors using a barycentric approach.
+    """Merges multiple models' parameters using a barycentric approach.
     
     Args:
-        task_vectors (list[dict[str, torch.Tensor]]): 
-            A list of dictionaries corresponding to task vectors of different 
-            models to be merged.
+        parameters (list[dict[str, torch.Tensor]]): 
+            A list of model's state dictionaries.
         weights (list[float]): 
             A list of weights corresponding to each state dictionary, used for 
             barycentric averaging.
@@ -93,7 +90,7 @@ def barycentric_merge(task_vectors: list[dict[str, torch.Tensor]],
     
     Returns:
         dict[str, torch.Tensor]: 
-            A task vector.
+            A merged state dictionary.
     
     Notes:
         - Non-tensor parameters are skipped and not merged.
@@ -101,19 +98,19 @@ def barycentric_merge(task_vectors: list[dict[str, torch.Tensor]],
         shapes.
     """
 
-    merged_task_vector = copy.deepcopy(task_vectors[0])
+    merged_params = copy.deepcopy(parameters[0])
     
-    for key in merged_task_vector.keys():
+    for key in merged_params.keys():
         #skip non-tensor parameters 
-        if not isinstance(merged_task_vector[key], torch.Tensor):
+        if not isinstance(merged_params[key], torch.Tensor):
             continue
 
-        tensors_to_merge = [tv[key] for tv in task_vectors]
+        tensors_to_merge = [tv[key] for tv in parameters]
         merged_tensor = barycenter(tensors_to_merge, weights, iterations,
                                        threshold)
-        merged_task_vector[key] = merged_tensor
+        merged_params[key] = merged_tensor
         
-    return merged_task_vector
+    return merged_params
 
 def build_merged_image_classifier(base_model_checkpoint: str, 
                             finetuned_model_checkpoint: str, 
@@ -160,15 +157,13 @@ def build_merged_image_classifier(base_model_checkpoint: str,
 
     return final_model
 
-#================================ BASELINES ================================
-
-def linear_merge(task_vectors: list[dict[str, torch.Tensor]], 
+def linear_merge(parameters: list[dict[str, torch.Tensor]], 
                  weights: list[float]) -> dict[str, torch.Tensor]:
-    """Merges multiple task vectors using a weighted linear combination.
+    """Merges multiple models' weights a weighted linear combination.
     
     Args:
-        task_vectors (list[dict[str, torch.Tensor]]): 
-            A list of dictionaries corresponding to task vectors of different 
+        parameters (list[dict[str, torch.Tensor]]): 
+            A list of dictionaries corresponding to state dictionaries of different 
             models to be merged.
         weights (list[float]): 
             A list of weights corresponding to each state dictionary. 
@@ -176,7 +171,7 @@ def linear_merge(task_vectors: list[dict[str, torch.Tensor]],
     
     Returns:
         dict[str, torch.Tensor]: 
-            A merged task vector.
+            The merged parameters.
     
     Raises:
         ValueError: If the number of weights does not match the number of state 
@@ -184,16 +179,16 @@ def linear_merge(task_vectors: list[dict[str, torch.Tensor]],
         KeyError: If a key is missing in any of the state dictionaries.
     """
 
-    merged_task_vector = copy.deepcopy(task_vectors[0])
+    merged_parameters = copy.deepcopy(parameters[0])
 
-    for key in merged_task_vector.keys():
+    for key in merged_parameters.keys():
         #skip non-tensor params
-        if not isinstance(merged_task_vector[key], torch.Tensor):
+        if not isinstance(merged_parameters[key], torch.Tensor):
             continue
 
-        tensors_to_merge = [tv[key] for tv in task_vectors]
+        tensors_to_merge = [tv[key] for tv in parameters]
         merged_tensor = weighted_average(tensors_to_merge, weights)
 
-        merged_task_vector[key] = merged_tensor
+        merged_parameters[key] = merged_tensor
 
-    return merged_task_vector
+    return merged_parameters
