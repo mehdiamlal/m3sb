@@ -1,4 +1,4 @@
-from types import Any
+from typing import Any
 import torch
 from m3sb.merging import barycentric_merge, linear_merge, pairwise_slerp_merge
 from m3sb.merging import build_merged_image_classifier
@@ -92,6 +92,3 @@ class Experiment:
 
     def get_results_df(self) -> pd.DataFrame:
         return pd.DataFrame(self.results)
-
-        
-            
