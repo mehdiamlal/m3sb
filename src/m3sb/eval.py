@@ -18,8 +18,8 @@ def evaluate_model(
     Returns:
         dict[str, Any]: A dictionary containing:
                          - 'metrics': A dict of accuracy, precision, recall, f1.
-                         - 'labels': A list of all true labels.
-                         - 'predictions': A list of all model predictions.
+                         - 'labels': A list of all true labels (for conf. matr)
+                         - 'predictions': A list of all model predictions (for conf. matr.)
     """
 
     model.to(device)
