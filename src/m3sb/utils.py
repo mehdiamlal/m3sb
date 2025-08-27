@@ -2,6 +2,7 @@ import torch
 from typing import Any
 import copy
 from transformers import AutoModel
+from sklearn.decomposition import PCA
 
 def get_model_parameters(model: torch.nn.Module) -> str:
     """Generates a summary string of a model's total and trainable parameters.
@@ -109,3 +110,36 @@ def similar_architecture(model1: torch.nn.Module, model2: torch.nn.Module) -> bo
             return False
 
     return True
+
+def flatten_state_dict(state_dict: dict[str, torch.Tensor]) -> torch.Tensor:
+    """Flattens a model's state_dict into a single 1D tensor.
+
+    Args:
+        state_dict (Dict[str, torch.Tensor]): The model's state dictionary.
+
+    Returns:
+        torch.Tensor: A single 1D tensor containing all model weights.
+    """
+    flat_tensors = [p.flatten() for p in state_dict.values() if isinstance(p, torch.Tensor)]
+    return torch.cat(flat_tensors)
+
+def run_pca(tensors: list[torch.Tensor], n_components: int = 2) -> list[torch.Tensor]:
+    """Runs PCA on a list of tensors to reduce them to n_components.
+
+    Args:
+        tensors (List[torch.Tensor]): A list of 1D tensors to run PCA on.
+        n_components (int): The number of principal components to keep.
+
+    Returns:
+        List[torch.Tensor]: A list of tensors, each with n_components dimensions.
+
+    Notes:
+        - Assumes all the tensors to have the same number of dimensions.
+    """
+    
+    stacked_tensors = torch.stack(tensors).numpy()
+    
+    pca = PCA(n_components=n_components)
+    transformed_vectors = pca.fit_transform(stacked_tensors)
+    
+    return [torch.tensor(vec) for vec in transformed_vectors]
