@@ -28,8 +28,11 @@ The project is organized into a Python package named `m3sb` with the following m
 -   `m3sb/data.py`: Handles the loading and preprocessing of datasets from the Hugging Face Hub.
 -   `m3sb/experiment.py`: Contains the `Experiment` and `TaskVectorExperiment` classes for automating experimental runs.
 -   `m3sb/visualization.py`: Includes helper functions for generating PCA plots and various charts.
+- `experiment-results`: contains the results of the experiments saved as csv files.
 
 ## Usage
+
+**Note**: in order to run the experiments in a reasonable time, make sure you have access to a GPU.
 
 The primary way to run experiments is by defining a configuration and using the `Experiment` or `TaskVectorExperiment` classes. This is typically done in a separate script or a Jupyter Notebook.
 
