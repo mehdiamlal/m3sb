@@ -1,0 +1,4 @@
+,experiment,merge_method,dataset,accuracy,precision,recall,f1_score
+0,Pairwise SLERP cycle consistency test,pairwise_slerp,CIFAR-100,89.23,89.61309132546528,89.23,89.19073338697399
+1,Pairwise SLERP cycle consistency test,pairwise_slerp,Food101,74.0079207920792,77.42916218714247,74.00792079207919,74.01531976681456
+2,Pairwise SLERP cycle consistency test,pairwise_slerp,Flowers102,98.72549019607844,98.89437360025597,98.69974252327194,98.73378621467393

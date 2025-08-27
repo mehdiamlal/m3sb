@@ -1,0 +1,10 @@
+,experiment,merge_method,dataset,accuracy,precision,recall,f1_score
+0,Random Interpolation Weights With Seed 42,barycenter,EuroSAT,85.92592592592592,87.52185133720059,86.91346224673427,86.02765955005569
+1,Random Interpolation Weights With Seed 42,barycenter,CatsVsDogs,99.6,99.6007936126978,99.6,99.59999839999361
+2,Random Interpolation Weights With Seed 42,barycenter,Beans,45.3125,63.70361030555206,45.12735326688815,40.82488032781186
+3,Random Interpolation Weights With Seed 42,linear,EuroSAT,84.66666666666667,86.91390867878731,85.60851212591784,85.00152665771422
+4,Random Interpolation Weights With Seed 42,linear,CatsVsDogs,99.65,99.65124128103201,99.64999999999999,99.64999781248633
+5,Random Interpolation Weights With Seed 42,linear,Beans,87.5,90.24767801857584,87.5046142488003,87.79505726341169
+6,Random Interpolation Weights With Seed 42,pairwise_slerp,EuroSAT,84.77777777777777,86.98123784155491,85.71250677991247,85.10315386556655
+7,Random Interpolation Weights With Seed 42,pairwise_slerp,CatsVsDogs,99.65,99.65124128103201,99.64999999999999,99.64999781248633
+8,Random Interpolation Weights With Seed 42,pairwise_slerp,Beans,87.5,90.24767801857584,87.5046142488003,87.79505726341169
